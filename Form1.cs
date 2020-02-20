@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using System.ServiceProcess;
 
 namespace WinSaleTroubleShooter
 {
@@ -22,16 +22,21 @@ namespace WinSaleTroubleShooter
 
         private void button1_Click(object sender, EventArgs e)
         {
-            System.IO.StreamWriter SW = new System.IO.StreamWriter("killprinter.bat");
-            SW.WriteLine(@"sc stop spooler
-del c:\windows\system32\spool\printers
-sc start spooler");
-            SW.Flush();
-            SW.Close();
-            SW.Dispose();
-            SW = null;
-            System.Diagnostics.Process.Start("killprinter.bat");
-            File.Delete("killprinter.bat");
+            ServiceController service = new ServiceController("Spooler");
+            if ((!service.Status.Equals(ServiceControllerStatus.Stopped)) &&
+                (!service.Status.Equals(ServiceControllerStatus.StopPending)))
+            {
+                
+
+                service.Stop();
+                service.WaitForStatus(ServiceControllerStatus.Stopped);
+            }
+
+            // Start the spooler.
+            
+            service.Start();
+            service.WaitForStatus(ServiceControllerStatus.Running);
+
 
         }
 
@@ -75,7 +80,7 @@ sc start spooler");
             System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/C ipconfig /flushdns";
+            startInfo.Arguments = "/C ipconfig /flushdns /K";
             startInfo.Verb = "runas";
             process.StartInfo = startInfo;
             process.Start();
